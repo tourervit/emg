@@ -22,7 +22,8 @@
         "dotenv": "^10.0.0",
         "react": "^17.0.0",
         "react-dom": "^17.0.0",
-        "react-redux": "^7.2.5"
+        "react-redux": "^7.2.5",
+        "web3": "^1.5.3"
     },
     "devDependencies": {
         "@types/react": "^17.0.24",
