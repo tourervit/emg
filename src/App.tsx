@@ -3,7 +3,7 @@ import Counter from './features/counter/Counter';
 
 function App(): JSX.Element {
 	return (
-		<div className="App">
+		<div className="bg-black">
 			<Counter />
 		</div>
 	);
