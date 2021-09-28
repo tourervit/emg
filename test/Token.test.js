@@ -48,16 +48,14 @@ contract('Token', accounts => {
 	describe('sending tokens', () => {
 		it('transfers token balances', async () => {
 			const deployerBalanceBeforeTransfer = await token.balanceOf(deployer);
-			console.log('deployerBalance: ', deployerBalanceBeforeTransfer.toString());
 			const receiverBalanceBeforeTransfer = await token.balanceOf(receiver);
-			console.log('receiverBalance: ', receiverBalanceBeforeTransfer.toString());
 
 			await token.transfer(receiver, web3.utils.toWei('1', 'ether'), { from: deployer });
 
 			const deployerBalanceAfterTransfer = await token.balanceOf(deployer);
-			console.log('deployerBalance: ', deployerBalanceAfterTransfer.toString());
+			deployerBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('99', 'ether'));
 			const receiverBalanceAfterTransfer = await token.balanceOf(receiver);
-			console.log('receiverBalance: ', receiverBalanceAfterTransfer.toString());
+			receiverBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('1', 'ether'));
 		});
 	});
 });
