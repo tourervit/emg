@@ -46,16 +46,37 @@ contract('Token', accounts => {
 	});
 
 	describe('sending tokens', () => {
-		it('transfers token balances', async () => {
-			const deployerBalanceBeforeTransfer = await token.balanceOf(deployer);
-			const receiverBalanceBeforeTransfer = await token.balanceOf(receiver);
+		let amount;
+		let result;
+		describe('success: enough tokens', () => {
+			beforeEach(async () => {
+				amount = web3.utils.toWei('1', 'ether');
+				result = await token.transfer(receiver, amount, { from: deployer });
+			});
 
-			await token.transfer(receiver, web3.utils.toWei('1', 'ether'), { from: deployer });
+			it('transfers token balances', async () => {
+				const deployerBalanceAfterTransfer = await token.balanceOf(deployer);
+				deployerBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('99', 'ether'));
+				const receiverBalanceAfterTransfer = await token.balanceOf(receiver);
+				receiverBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('1', 'ether'));
+			});
 
-			const deployerBalanceAfterTransfer = await token.balanceOf(deployer);
-			deployerBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('99', 'ether'));
-			const receiverBalanceAfterTransfer = await token.balanceOf(receiver);
-			receiverBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('1', 'ether'));
+			it('emits Transfer event', () => {
+				const log = result.logs[0];
+				log.event.should.equal('Transfer');
+				log.args.from.should.equal(deployer, 'from is correct');
+				log.args.to.should.equal(receiver, 'to is corrent');
+				log.args.value.toString().should.equal(amount, 'amount is correct');
+			});
+		});
+
+		describe('failure: unsufficient tokens', () => {
+			it('rejects unsufficient balances', async () => {
+				amount = web3.utils.toWei('101', 'ether');
+				await token
+					.transfer(receiver, amount, { from: deployer })
+					.should.rejectedWith('VM Exception while processing transaction: revert');
+			});
 		});
 	});
 });
