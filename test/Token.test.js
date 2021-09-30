@@ -8,6 +8,7 @@ contract('Token', accounts => {
 
 	const deployer = accounts[0];
 	const receiver = accounts[1];
+	const exchange = accounts[2];
 	const name = 'EMG';
 	const symbol = 'EMG';
 	const decimals = 18 + '';
@@ -78,5 +79,33 @@ contract('Token', accounts => {
 					.should.rejectedWith('VM Exception while processing transaction: revert');
 			});
 		});
+	});
+
+	describe('approving tokens', () => {
+		let result;
+		let amount;
+
+		beforeEach(async () => {
+			amount = web3.utils.toWei('10', 'ether');
+			result = await token.approve(exchange, amount, { from: deployer });
+		});
+
+		describe('success', () => {
+			it('allocates an allowance for exchange to spend token', async () => {
+				const allowance = await token.allowance(deployer, exchange);
+				allowance.toString().should.equal(amount.toString());
+			});
+
+			it('emits approval event', () => {
+				const log = result.logs[0];
+				log.event.should.eq('Approval');
+				const event = log.args;
+				event.owner.should.equal(deployer, 'owner is correct');
+				event.spender.should.equal(exchange, 'spender is correct');
+				log.args.value.toString().should.equal(amount, 'value is correct');
+			});
+		});
+
+		describe('failure', () => {});
 	});
 });
