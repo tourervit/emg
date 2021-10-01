@@ -52,7 +52,8 @@ contract('Token', accounts => {
 		describe('success: enough tokens', () => {
 			beforeEach(async () => {
 				amount = web3.utils.toWei('1', 'ether');
-				result = await token.transfer(receiver, amount, { from: deployer });
+				const r = await token.approve(exchange, amount, { from: deployer });
+				result = await token.transferFrom(deployer, receiver, amount, { from: exchange });
 			});
 
 			it('transfers token balances', async () => {
@@ -60,6 +61,11 @@ contract('Token', accounts => {
 				deployerBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('99', 'ether'));
 				const receiverBalanceAfterTransfer = await token.balanceOf(receiver);
 				receiverBalanceAfterTransfer.toString().should.equal(web3.utils.toWei('1', 'ether'));
+			});
+
+			it('resets the allowance', async () => {
+				const allowance = await token.allowance(deployer, exchange);
+				allowance.toString().should.equal('0');
 			});
 
 			it('emits Transfer event', () => {
@@ -106,6 +112,13 @@ contract('Token', accounts => {
 			});
 		});
 
-		describe('failure', () => {});
+		describe('failure', () => {
+			it('rejects insufficient amounts', async () => {
+				const amount = web3.utils.toWei('999', 'ether');
+				await token
+					.transferFrom(deployer, receiver, amount, { from: exchange })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
+		});
 	});
 });
