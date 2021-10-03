@@ -3,6 +3,7 @@ const Token = artifacts.require('./Token');
 const Exchange = artifacts.require('./Exchange');
 
 const web3 = new Web3();
+const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 require('chai').use(require('chai-as-promised')).should();
 
 contract('Exchange', accounts => {
@@ -34,6 +35,29 @@ contract('Exchange', accounts => {
 			await exchange
 				.sendTransaction({ value: 1, from: user1 })
 				.should.be.rejectedWith('VM Exception while processing transaction: revert');
+		});
+	});
+
+	describe('depositing ether', () => {
+		let result;
+		const amount = web3.utils.toWei('10', 'ether');
+		beforeEach(async () => {
+			result = await exchange.depositEther({ from: user1, value: amount });
+		});
+
+		it('tracks eth deposit', async () => {
+			const balance = await exchange.tokens(ETH_ADDRESS, user1);
+			balance.toString().should.be.equal(amount.toString());
+		});
+
+		it('emits Deposit event', () => {
+			const log = result.logs[0];
+			log.event.should.equal('Deposit');
+			const event = log.args;
+			event.token.should.equal(ETH_ADDRESS, 'ether address is correct');
+			event.user.should.equal(user1, 'user address is corrent');
+			event.amount.toString().should.equal(amount, 'amount is correct');
+			event.balance.toString().should.equal(amount, 'balance is correct');
 		});
 	});
 
@@ -71,7 +95,11 @@ contract('Exchange', accounts => {
 		});
 
 		describe('failure', () => {
-			it('rejects eth deposits', async () => {});
+			it('rejects eth deposits', async () => {
+				await exchange
+					.depositToken(ETH_ADDRESS, web3.utils.toWei('10', 'ether'), { from: user1 })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
 			it('fails when no tokens approved', async () => {
 				await exchange
 					.depositToken(token.address, amount, {
