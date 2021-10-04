@@ -14,7 +14,7 @@ contract('Exchange', accounts => {
 
 	beforeEach(async () => {
 		token = await Token.new();
-		token.transfer(user1, web3.utils.toWei('10', 'ether'), { from: deployer });
+		token.transfer(user1, web3.utils.toWei('1', 'ether'), { from: deployer });
 		exchange = await Exchange.new(feeAccount, feePercent);
 	});
 
@@ -40,7 +40,7 @@ contract('Exchange', accounts => {
 
 	describe('depositing ether', () => {
 		let result;
-		const amount = web3.utils.toWei('10', 'ether');
+		const amount = web3.utils.toWei('1', 'ether');
 		beforeEach(async () => {
 			result = await exchange.depositEther({ from: user1, value: amount });
 		});
@@ -61,12 +61,48 @@ contract('Exchange', accounts => {
 		});
 	});
 
+	describe('withdrawing ether', () => {
+		let result;
+		const amount = web3.utils.toWei('1', 'ether');
+
+		describe('success', async () => {
+			beforeEach(async () => {
+				await exchange.depositEther({ from: user1, value: amount });
+			});
+
+			it('withdraws ether', async () => {
+				result = await exchange.withdrawEther(amount, { from: user1 });
+				const balance = await exchange.tokens(ETH_ADDRESS, user1);
+				balance.toString().should.equal('0');
+			});
+
+			it('emits Withdraw event', () => {
+				const log = result.logs[0];
+				log.event.should.equal('Withdraw');
+				const event = log.args;
+				event.token.should.equal(ETH_ADDRESS, 'ether address is correct');
+				event.user.should.equal(user1, 'user address is corrent');
+				event.amount.toString().should.equal(amount, 'amount is correct');
+				event.balance.toString().should.equal('0', 'balance is correct');
+			});
+		});
+
+		describe('failure', async () => {
+			it('rejects withdraws for insufficient balances', async () => {
+				await exchange
+					.withdrawEther(web3.utils.toWei('1000', 'ether'), { from: user1 })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
+		});
+	});
+
 	describe('depositing tokens', () => {
 		let result;
-		const amount = web3.utils.toWei('10', 'ether');
+		let amount;
 
-		describe('success', () => {
+		describe('success', async () => {
 			beforeEach(async () => {
+				amount = web3.utils.toWei('1', 'ether');
 				await token.approve(exchange.address, amount, { from: user1 });
 				result = await exchange.depositToken(token.address, amount, {
 					from: user1,
@@ -107,6 +143,59 @@ contract('Exchange', accounts => {
 					})
 					.should.be.rejectedWith('VM Exception while processing transaction: revert');
 			});
+		});
+	});
+
+	describe('withdrawing tokens', async () => {
+		let result;
+		const amount = web3.utils.toWei('1', 'ether');
+
+		describe('success', () => {
+			beforeEach(async () => {
+				await token.approve(exchange.address, amount, { from: user1 });
+				await exchange.depositToken(token.address, amount, { from: user1 });
+				result = await exchange.withdrawToken(token.address, amount, { from: user1 });
+			});
+
+			it('withdraws tokens', async () => {
+				const balance = await exchange.tokens(token.address, user1);
+				balance.toString().should.equal('0');
+			});
+
+			it('emits Withdraw event', () => {
+				const log = result.logs[0];
+				log.event.should.eq('Withdraw');
+				const event = log.args;
+				event.token.should.equal(token.address);
+				event.user.should.equal(user1);
+				event.amount.toString().should.equal(amount.toString());
+				event.balance.toString().should.equal('0');
+			});
+		});
+
+		describe('failure', async () => {
+			it('rejects ether withdraw', async () => {
+				await exchange
+					.withdrawToken(ETH_ADDRESS, web3.utils.toWei('1', 'ether'), { from: user1 })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
+
+			it('fails for insufficient balances', async () => {
+				await exchange
+					.withdrawToken(token.address, web3.utils.toWei('100', 'ether'), { from: user1 })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
+		});
+	});
+
+	describe('check user balance', async () => {
+		beforeEach(async () => {
+			await exchange.depositEther({ from: user1, value: web3.utils.toWei('1', 'ether') });
+		});
+
+		it('correctly reads user balance', async () => {
+			const result = await exchange.balanceOf(ETH_ADDRESS, user1);
+			result.toString().should.equal(web3.utils.toWei('1', 'ether'));
 		});
 	});
 });
