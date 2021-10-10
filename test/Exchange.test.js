@@ -244,6 +244,9 @@ contract('Exchange', accounts => {
 	describe('orders', async () => {
 		beforeEach(async () => {
 			await exchange.depositEther({ from: user1, value: web3.utils.toWei('1', 'ether') });
+			await token.transfer(user2, web3.utils.toWei('10', 'ether'), { from: deployer });
+			await token.approve(exchange.address, web3.utils.toWei('2', 'ether'), { from: user2 });
+			await exchange.depositToken(token.address, web3.utils.toWei('2', 'ether'), { from: user2 });
 			await exchange.makeOrder(
 				token.address,
 				web3.utils.toWei('1', 'ether'),
@@ -251,6 +254,77 @@ contract('Exchange', accounts => {
 				web3.utils.toWei('1', 'ether'),
 				{ from: user1 },
 			);
+		});
+
+		describe('filling orders', async () => {
+			let result;
+			describe('success', async () => {
+				beforeEach(async () => {
+					result = await exchange.fillOrder('1', { from: user2 });
+				});
+
+				it('excecutes trade and charges fee', async () => {
+					let balance;
+					balance = await exchange.balanceOf(token.address, user1);
+					balance.toString().should.eq(web3.utils.toWei('1', 'ether'), 'user1 received tokens');
+					balance = await exchange.balanceOf(ETH_ADDRESS, user2);
+					balance.toString().should.eq(web3.utils.toWei('1', 'ether'), 'user2 received eth');
+					balance = await exchange.balanceOf(ETH_ADDRESS, user1);
+					balance.toString().should.eq('0', 'user1 has no eth');
+					balance = await exchange.balanceOf(token.address, user2);
+					balance
+						.toString()
+						.should.eq(web3.utils.toWei('0.9', 'ether'), 'user2 tokens with fee applied');
+					const feeAccount = await exchange.feeAccount();
+					balance = await exchange.balanceOf(token.address, feeAccount);
+					balance.toString().should.eq(web3.utils.toWei('0.1', 'ether'), 'feeAccount received fee');
+				});
+
+				it('updates filled orders', async () => {
+					const filledOrder = await exchange.filledOrders(1);
+					filledOrder.should.eq(true);
+				});
+
+				it('emits Trade event', () => {
+					const log = result.logs[0];
+					log.event.should.eq('Trade');
+					const event = log.args;
+					event.id.toString().should.eq('1', 'id is correct');
+					event.user.should.eq(user1, 'user address is corrent');
+					event.tokenBuy.should.eq(token.address, 'tokenBuy is correct');
+					event.amountBuy
+						.toString()
+						.should.eq(web3.utils.toWei('1', 'ether'), 'amountBuy is correct');
+					event.tokenSell.should.eq(ETH_ADDRESS, 'tokenSell is correct');
+					event.amountSell
+						.toString()
+						.should.eq(web3.utils.toWei('1', 'ether'), 'amountSell is correct');
+					event.userFill.should.eq(user2, 'filled user is correct');
+					event.timestamp.toString().length.should.be.at.least(1, 'timestamp is correct');
+				});
+			});
+		});
+
+		describe('failure', async () => {
+			it('rejects invalid order ids', async () => {
+				await exchange
+					.fillOrder(666, { from: user2 })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
+
+			it('rejects already filled orders', async () => {
+				await exchange.fillOrder('1', { from: user2 }).should.be.fulfilled;
+				await exchange
+					.fillOrder('1', { from: user2 })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
+
+			it('rejects cancelled orders', async () => {
+				await exchange.cancelOrder('1', { from: user1 }).should.be.fulfilled;
+				await exchange
+					.fillOrder('1', { from: user2 })
+					.should.be.rejectedWith('VM Exception while processing transaction: revert');
+			});
 		});
 
 		describe('cancel order', async () => {
