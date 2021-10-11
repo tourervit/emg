@@ -1,8 +1,6 @@
-const Web3 = require('web3');
-const Token = artifacts.require('./Token');
-const Exchange = artifacts.require('./Exchange');
+const E_Token = artifacts.require('./Token');
+const E_Exchange = artifacts.require('./Exchange');
 
-const web3 = new Web3();
 const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 require('chai').use(require('chai-as-promised')).should();
 
@@ -13,9 +11,9 @@ contract('Exchange', accounts => {
 	let exchange;
 
 	beforeEach(async () => {
-		token = await Token.new();
+		token = await E_Token.new();
 		token.transfer(user1, web3.utils.toWei('1', 'ether'), { from: deployer });
-		exchange = await Exchange.new(feeAccount, feePercent);
+		exchange = await E_Exchange.new(feeAccount, feePercent);
 	});
 
 	describe('deployment', () => {

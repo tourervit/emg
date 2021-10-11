@@ -9,43 +9,32 @@
     },
     "description": "EMG",
     "scripts": {
-        "dev": "vite",
-        "build": "tsc && vite build",
-        "serve": "vite preview",
-        "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\""
+        "generate-types": "typechain --target=truffle-v5 'build/contracts/*.json'",
+        "postinstall": "truffle compile && yarn generate-types",
+        "migrate": "tsc -p ./tsconfig.migrate.json --outDir ./migrations && truffle migrate",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@reduxjs/toolkit": "^1.6.1",
+        "@typechain/truffle-v5": "^5.1.0",
+        "@types/bn.js": "^4.11.6",
+        "@types/chai": "^4.2.11",
+        "@types/mocha": "^7.0.2",
+        "@types/web3": "^1.2.2",
         "chai": "^4.3.4",
         "chai-as-promised": "^7.1.1",
         "chai-bignumber": "^3.0.0",
         "dotenv": "^10.0.0",
-        "react": "^17.0.0",
-        "react-dom": "^17.0.0",
-        "react-redux": "^7.2.5",
-        "web3": "^1.5.3"
+        "truffle": "^5.1.22",
+        "typechain": "^5.1.2",
+        "typescript": "^4.4.3"
     },
     "devDependencies": {
-        "@types/react": "^17.0.24",
-        "@types/react-dom": "^17.0.0",
         "@typescript-eslint/eslint-plugin": "^4.31.2",
         "@typescript-eslint/parser": "^4.31.2",
-        "@vitejs/plugin-react-refresh": "^1.3.1",
-        "autoprefixer": "^10.3.5",
         "eslint": "^7.32.0",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-import": "^2.23.4",
-        "eslint-plugin-jsx-a11y": "^6.4.1",
         "eslint-plugin-prettier": "^3.4.0",
-        "eslint-plugin-react": "^7.26.0",
-        "eslint-plugin-react-hooks": "^4.2.0",
-        "postcss": "^8.3.7",
-        "prettier": "^2.4.1",
-        "stylelint": "^13.13.1",
-        "stylelint-config-recommended": "^5.0.0",
-        "stylelint-config-standard": "^22.0.0",
-        "tailwindcss": "^2.2.15",
-        "typescript": "^4.4.3",
-        "vite": "^2.5.10"
+        "prettier": "^2.4.1"
     }
 }

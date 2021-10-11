@@ -1,11 +1,8 @@
-const Web3 = require('web3');
-const Token = artifacts.require('./Token');
+const T_Token = artifacts.require('./Token');
 
 require('chai').use(require('chai-as-promised')).should();
 
 contract('Token', accounts => {
-	const web3 = new Web3();
-
 	const deployer = accounts[0];
 	const receiver = accounts[1];
 	const exchange = accounts[2];
@@ -16,7 +13,7 @@ contract('Token', accounts => {
 
 	let token;
 	beforeEach(async () => {
-		token = await Token.new();
+		token = await T_Token.new();
 	});
 
 	describe('deployment', () => {
